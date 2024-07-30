@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://ghproxy.xcqcoo.us.kg/https://raw.githubusercontent.com/QC3284/openwrt-actions-config/main/yilang.png"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="本文说明如何一步一步地从源码编译出自己的OpenWrt镜像
+
+# 准备工作
+准备一个GNU/Linux, BSD 或 MacOSX 操作系统。">
+<meta property="og:title" content="OpenWrt：从源码到固件，编译自己的OpenWrt系统">
+<meta property="og:description" content="本文说明如何一步一步地从源码编译出自己的OpenWrt镜像
+
+# 准备工作
+准备一个GNU/Linux, BSD 或 MacOSX 操作系统。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://QC3284.github.io/post/OpenWrt%EF%BC%9A-cong-yuan-ma-dao-gu-jian-%EF%BC%8C-bian-yi-zi-ji-de-OpenWrt-xi-tong.html">
+<meta property="og:image" content="https://ghproxy.xcqcoo.us.kg/https://raw.githubusercontent.com/QC3284/openwrt-actions-config/main/yilang.png">
+<title>OpenWrt：从源码到固件，编译自己的OpenWrt系统</title>
+
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">OpenWrt：从源码到固件，编译自己的OpenWrt系统</h1>
+<div class="title-right">
+    <a href="https://QC3284.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/QC3284/QC3284.github.io/issues/2" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><p>本文说明如何一步一步地从源码编译出自己的OpenWrt镜像</p>
+<h1>准备工作</h1>
+<p>准备一个GNU/Linux, BSD 或 MacOSX 操作系统。并且，在环境中准备好以下官方教程中要求的工具：<br>
+<a href="https://openwrt.org/docs/guide-developer/toolchain/install-buildsystem" rel="nofollow">https://openwrt.org/docs/guide-developer/toolchain/install-buildsystem</a></p>
+<p>我的环境是Ubuntu22.04，执行：</p>
+<pre lang="linux" class="notranslate"><code class="notranslate">sudo apt update 
+sudo apt install build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-distutils rsync unzip zlib1g-dev file wget
+</code></pre>
+<h1>编译系统</h1>
+<h2>下载源码</h2>
+<p>下载代码：</p>
+<pre lang="linux" class="notranslate"><code class="notranslate">git clone https://github.com/openwrt/openwrt.git
+cd openwrt
+git pull
+</code></pre>
+<p>切换分支，一般选择最新的稳定版本：</p>
+<pre lang="linux" class="notranslate"><code class="notranslate">git branch -a
+git tag
+git checkout v23.05.4
+</code></pre>
+<h2>下载软件包</h2>
+<p>运行<code class="notranslate">./scripts/feeds update -a</code>命令，下载或更新在<code class="notranslate">feeds.conf/feeds.conf.default</code>中定义的所有最新软件包。</p>
+<p>！！注意！！<br>
+受限于国内的访问国际互联网的环境中，feeds update这一步特别容易失败。可以通过以下几条方式来提高成功率：<br>
+<code class="notranslate">git config --global http.postBuffer 524288000</code> <code class="notranslate">git config --global http.lowSpeedLimit 1000</code> <code class="notranslate">git config --global http.lowSpeedTime 600 </code>以上配置的含义为：配置git缓冲区为500M，配置git访问超时的条件为：速率小于1KB/s，且持续600秒<br>
+（有条件的可以开代理）</p>
+<p>运行<code class="notranslate">./scripts/feeds install -a</code>命令使安装上述软件包在后续的<code class="notranslate">make menuconfig</code>中生效。</p>
+<h1>配置编译选项</h1>
+<h2>使用已有固件的编译配置</h2>
+<p>网络上已编译出的固件通常都会把编译配置一并提供（config.buildinfo或config.seed），可以直接使用。<br>
+我的目标机是一台小米WR30U，使用mtk的filogic芯片方案，从OpenWrt官网找到对应的编译配置并下载，置于OpenWrt工程根目录下的<code class="notranslate">.config</code>文件中：</p>
+<pre lang="linux" class="notranslate"><code class="notranslate">wget https://downloads.openwrt.org/releases/23.05.4/targets/mediatek/filogic/config.buildinfo -O .config
+</code></pre>
+<p>但这份配置中包含了filogic芯片方案的所有设备的配置，还需进行裁剪和修改。</p>
+<h2>menuconfig</h2>
+<p>在以上配置的基础上，运行<code class="notranslate">make menuconfig</code>命令来完成进一步的自定义配置。完成后配置会更新至<code class="notranslate">.config</code>文件中。<br>
+<a target="_blank" rel="noopener noreferrer nofollow" href="https://camo.githubusercontent.com/c3bc114ff9c1652a5b3b7e95783e5178e3107b83593a7e1af1edbf80b6937d0f/68747470733a2f2f706963312e7a68696d672e636f6d2f76322d32626539383639613237346231613437323866636537646265316361313737305f722e6a7067"><img src="https://camo.githubusercontent.com/c3bc114ff9c1652a5b3b7e95783e5178e3107b83593a7e1af1edbf80b6937d0f/68747470733a2f2f706963312e7a68696d672e636f6d2f76322d32626539383639613237346231613437323866636537646265316361313737305f722e6a7067" alt="v2-2_r" data-canonical-src="https://pic1.zhimg.com/v2-2be9869a274b1a4728fce7dbe1ca1770_r.jpg" style="max-width: 100%;"></a></p>
+<p>在Target Profile中，仅保留Xiaomi WR30U的设备支持（我的设备是Xiaomi Mi Router WR30U (112M UBI with NMBM-Enabled layout)），把其它设备的支持删除。</p>
+<h2>编译</h2>
+<p>使用<code class="notranslate">make download</code>预先下载编译过程中需要的代码和依赖项等资源。</p>
+<p>. . . . . . . 经过漫长的等待下载完成。到此为止，我们已做好了所有的编译准备。<br>
+正式开始编译吧，运行<code class="notranslate">make</code>命令来构建固件。该命令将下载所有源代码和依赖项（即使之前已经<code class="notranslate">make download</code>，也还有其它包需要下载），构建交叉编译工具链，然后为目标系统交叉编译出OpenWrt内核和应用程序。</p>
+<pre lang="linux" class="notranslate"><code class="notranslate">make -j4 V=s
+</code></pre>
+<h2>编译选项说明</h2>
+<p><code class="notranslate">-jN</code>: make命令可以加上-j参数用于指定使用多少cpu核编译，可以加速编译过程。例如：<code class="notranslate">make download -j4，make -j5</code></p>
+<p><code class="notranslate">V=s</code>：make命令可以加上V=s可以输出更多的编译错误信息。</p>
+<p>如果顺利的话，这里make完就可以编译出镜像了。但是实际不太可能完全顺利。</p>
+<h2>编译输出</h2>
+<p>. . . . . . . 经过漫长的编译过程（我的环境中编了5个小时），编译结果存放于<code class="notranslate">openwrt/bin/targets/</code>目录下。几类编译产出的镜像说明如下：<br>
+1.factory：用于替换厂商的原厂固件，兼容原厂的安装包格式。通常使用原厂的web GUI进行升级或在Uboot中刷入。<br>
+2.sysupgrade：用于升级替换已有的OpenWrt版本，这是最常用的镜像。<br>
+3.initramfs-kernel：用于开发或特殊情况下的一次性引导，作为安装常规sysupgrade版本的过渡步骤。由于initramfs版本完全运行在RAM中，不会在闪存中存储任何设置，因此不适合用于操作性使用。</p></div>
+<div style="font-size:small;margin-top:8px;float:right;"></div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://QC3284.github.io">QC3284的博客</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if(""!=""){
+    var startSite=new Date("");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","QC3284/QC3284.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+</script>
+
+
+</html>
