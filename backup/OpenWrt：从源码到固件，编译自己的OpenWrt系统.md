@@ -5,7 +5,7 @@
 https://openwrt.org/docs/guide-developer/toolchain/install-buildsystem
 
 我的环境是Ubuntu22.04，执行：
-```linux
+```sh
 sudo apt update 
 sudo apt install build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-distutils rsync unzip zlib1g-dev file wget
 ```
@@ -13,13 +13,13 @@ sudo apt install build-essential clang flex bison g++ gawk gcc-multilib g++-mult
 # 编译系统
 ## 下载源码
 下载代码：
-```linux
+```sh
 git clone https://github.com/openwrt/openwrt.git
 cd openwrt
 git pull
 ```
 切换分支，一般选择最新的稳定版本：
-```linux
+```sh
 git branch -a
 git tag
 git checkout v23.05.4
@@ -38,7 +38,7 @@ git checkout v23.05.4
 ## 使用已有固件的编译配置
 网络上已编译出的固件通常都会把编译配置一并提供（config.buildinfo或config.seed），可以直接使用。
 我的目标机是一台小米WR30U，使用mtk的filogic芯片方案，从OpenWrt官网找到对应的编译配置并下载，置于OpenWrt工程根目录下的`.config`文件中：
-```linux
+```sh
 wget https://downloads.openwrt.org/releases/23.05.4/targets/mediatek/filogic/config.buildinfo -O .config
 ```
 但这份配置中包含了filogic芯片方案的所有设备的配置，还需进行裁剪和修改。
@@ -54,7 +54,7 @@ wget https://downloads.openwrt.org/releases/23.05.4/targets/mediatek/filogic/con
 
 . . . . . . . 经过漫长的等待下载完成。到此为止，我们已做好了所有的编译准备。
 正式开始编译吧，运行`make`命令来构建固件。该命令将下载所有源代码和依赖项（即使之前已经`make download`，也还有其它包需要下载），构建交叉编译工具链，然后为目标系统交叉编译出OpenWrt内核和应用程序。
-```linux
+```sh
 make -j4 V=s
 ```
 ## 编译选项说明
